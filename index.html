@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Your Blueprint Admin</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="brandmark" aria-hidden="true">
+          <span></span>
+        </div>
+        <div>
+          <p class="eyebrow">LCM Admin</p>
+          <h1>Your Blueprint</h1>
+          <p class="lede">Create a client login, upload the reviewed Blueprint PDF, and publish it to the mobile app in one flow.</p>
+        </div>
+      </section>
+
+      <section class="grid">
+        <form class="panel" id="login-form">
+          <div class="section-title">
+            <h2>Admin Login</h2>
+            <p>Use an account with role <strong>admin</strong> in Supabase.</p>
+          </div>
+          <label>
+            Admin email
+            <input id="admin-email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="admin-password" type="password" autocomplete="current-password" required />
+          </label>
+          <button type="submit">Sign in</button>
+          <p class="status" id="login-status">Not signed in.</p>
+        </form>
+
+        <form class="panel wide" id="client-form">
+          <div class="section-title">
+            <h2>Create Client + Upload Blueprint</h2>
+            <p>The client can log into the iPhone app immediately after this succeeds.</p>
+          </div>
+
+          <div class="two">
+            <label>
+              Client name
+              <input id="client-name" type="text" autocomplete="name" required />
+            </label>
+            <label>
+              Client email
+              <input id="client-email" type="email" autocomplete="email" required />
+            </label>
+          </div>
+
+          <label>
+            Temporary password
+            <input id="client-password" type="text" required />
+          </label>
+
+          <label>
+            Blueprint focus shown in the app
+            <textarea id="current-focus" rows="4" required>Gut, immune, and barrier friction are the first layers to calm before pushing intensity.</textarea>
+          </label>
+
+          <div class="two">
+            <label>
+              Delivered date
+              <input id="delivered-at" type="date" />
+            </label>
+            <label>
+              Blueprint PDF
+              <input id="blueprint-pdf" type="file" accept="application/pdf" required />
+            </label>
+          </div>
+
+          <button type="submit">Create client and publish</button>
+          <pre class="result" id="result">Ready.</pre>
+        </form>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
