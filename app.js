@@ -67,6 +67,7 @@ clientForm.addEventListener("submit", async (event) => {
     const response = await fetch(`${SUPABASE_URL}/functions/v1/create-client-blueprint`, {
       method: "POST",
       headers: {
+        apikey: SUPABASE_ANON_KEY,
         Authorization: `Bearer ${accessToken}`,
       },
       body: formData,
@@ -81,7 +82,10 @@ clientForm.addEventListener("submit", async (event) => {
     clientForm.reset();
     deliveredAt.valueAsDate = new Date();
   } catch (error) {
-    writeResult(error.message, true);
+    const message = error.message === "Failed to fetch"
+      ? "Could not reach the Supabase function. Redeploy it with JWT verification disabled, then try again."
+      : error.message;
+    writeResult(message, true);
   } finally {
     button.disabled = false;
   }
