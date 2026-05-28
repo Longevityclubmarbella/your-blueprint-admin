@@ -155,7 +155,7 @@ async function handleLogin(event) {
 
 function restoreSession() {
   try {
-    const saved = JSON.parse(localStorage.getItem(SESSION_KEY) || "null");
+    const saved = JSON.parse(storageRead(SESSION_KEY) || "null");
     if (!saved?.accessToken) {
       showLogin();
       return;
@@ -164,7 +164,7 @@ function restoreSession() {
     showMainApp();
     syncAll();
   } catch {
-    localStorage.removeItem(SESSION_KEY);
+    storageRemove(SESSION_KEY);
     showLogin();
   }
   window.setTimeout(maybeShowInstallPrompt, 800);
@@ -201,7 +201,7 @@ function sessionFromAuthResponse(data) {
 }
 
 function saveSession() {
-  localStorage.setItem(SESSION_KEY, JSON.stringify(state.session));
+  storageWrite(SESSION_KEY, JSON.stringify(state.session));
 }
 
 function signOut() {
@@ -209,7 +209,7 @@ function signOut() {
   state.client = null;
   state.checkins = [];
   state.blueprint = pendingBlueprint("Client");
-  localStorage.removeItem(SESSION_KEY);
+  storageRemove(SESSION_KEY);
   showLogin();
 }
 
@@ -1574,7 +1574,7 @@ async function installApp() {
 }
 
 function dismissInstallPrompt() {
-  localStorage.setItem(INSTALL_DISMISSED_KEY, String(Date.now()));
+  storageWrite(INSTALL_DISMISSED_KEY, String(Date.now()));
   hideInstallPrompt();
 }
 
@@ -1599,8 +1599,32 @@ function isStandaloneMode() {
 }
 
 function wasInstallPromptDismissedRecently() {
-  const dismissedAt = Number(localStorage.getItem(INSTALL_DISMISSED_KEY) || 0);
+  const dismissedAt = Number(storageRead(INSTALL_DISMISSED_KEY) || 0);
   if (!dismissedAt) return false;
   const fourteenDays = 14 * 24 * 60 * 60 * 1000;
   return Date.now() - dismissedAt < fourteenDays;
+}
+
+function storageRead(key) {
+  try {
+    return window.localStorage.getItem(key);
+  } catch {
+    return "";
+  }
+}
+
+function storageWrite(key, value) {
+  try {
+    window.localStorage.setItem(key, value);
+  } catch {
+    // Some file:// previews block localStorage. The app still works for the current session.
+  }
+}
+
+function storageRemove(key) {
+  try {
+    window.localStorage.removeItem(key);
+  } catch {
+    // Ignore storage restrictions in local file previews.
+  }
 }
