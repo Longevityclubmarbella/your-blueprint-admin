@@ -1,4 +1,4 @@
-const CACHE_NAME = "your-blueprint-client-v7";
+const CACHE_NAME = "your-blueprint-client-v8";
 const APP_SHELL = [
   "./",
   "./index.html",

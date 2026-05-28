@@ -522,7 +522,6 @@ function renderAsk() {
 
 async function askBlueprintQuestion(event) {
   event.preventDefault();
-  if (!state.session || !state.client) return;
 
   const question = els.askQuestion.value.trim();
   if (question.length < 8) {
@@ -530,12 +529,28 @@ async function askBlueprintQuestion(event) {
     return;
   }
 
+  if (!state.session) {
+    setAskStatus("Sign in first so the answer can use your Blueprint.", true);
+    return;
+  }
+
   const button = els.askForm.querySelector("button");
   button.disabled = true;
-  setAskStatus("Reading your Blueprint context...");
-  renderAskAnswer("Thinking through this against your Blueprint...");
+  state.askAnswer = buildLocalAskAnswer(question);
+  renderAskAnswer(state.askAnswer);
+  setAskStatus("Blueprint-based answer ready. Asking AI for extra context...");
 
   try {
+    if (!state.client) {
+      await syncAll();
+    }
+    if (!state.client) {
+      setAskStatus("Client data is still loading. Tap Refresh and try again.", true);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
     const response = await fetch(`${SUPABASE_URL}/functions/v1/ask-blueprint-question`, {
       method: "POST",
       headers: {
@@ -548,15 +563,16 @@ async function askBlueprintQuestion(event) {
         question,
         profile: state.blueprint.profile?.key || "unknown",
       }),
+      signal: controller.signal,
     });
+    window.clearTimeout(timeoutId);
     const data = await parseResponse(response, "Could not answer this question.");
     state.askAnswer = data.answer || buildLocalAskAnswer(question);
     renderAskAnswer(state.askAnswer);
     setAskStatus(data.provider ? `Answered with ${data.provider}.` : "Answered from Blueprint context.");
   } catch (error) {
-    state.askAnswer = buildLocalAskAnswer(question);
-    renderAskAnswer(state.askAnswer);
-    setAskStatus(`${error.message} Showing a safe Blueprint-based answer for now.`, true);
+    const message = error.name === "AbortError" ? "AI answer took too long." : error.message;
+    setAskStatus(`${message} Showing the Blueprint-based answer for now.`, true);
   } finally {
     button.disabled = false;
   }
