@@ -627,6 +627,8 @@ function buildAskContextSnapshot() {
     food_suggestions: (blueprint.foodSuggestions || []).slice(0, 6),
     training_plan: (blueprint.trainingPlan || []).slice(0, 6),
     supplement_ideas: (blueprint.supplementIdeas || []).slice(0, 6),
+    dna_insights: blueprint.dnaInsights || {},
+    preferred_swaps: preferredFoodSwaps(blueprint.foodFocus || []),
     biomarkers: (blueprint.biomarkers || []).slice(0, 10).map((marker) => ({
       name: marker.name,
       value: marker.value,
@@ -659,9 +661,13 @@ function buildLocalAskAnswer(question) {
   const isFood = /breakfast|meal|eat|food|dairy|egg|protein|oats|fish|coffee|alcohol/.test(lower);
 
   if (isFood) {
+    const wantsYoghurt = /yoghurt|yogurt|greek|dairy/.test(lower);
+    const yoghurtSwap = wantsYoghurt && /dairy|casein|milk|whey|yoghurt|yogurt|cheese/i.test(foodRules)
+      ? " If you want the yoghurt texture, use unsweetened coconut-based yoghurt and keep the protein anchored with the approved protein foods from the Blueprint."
+      : "";
     return [
       `Short answer: compare the meal against your loaded food rules first. Current Blueprint food context: ${foodRules}`,
-      "How to adjust: keep the protein anchor simple, avoid foods that are marked as temporary avoid/limit items, and change one variable at a time.",
+      `How to adjust: keep the protein anchor simple, avoid foods that are marked as temporary avoid/limit items, and change one variable at a time.${yoghurtSwap}`,
       "What to track: energy, gut comfort, cravings, sleep and recovery over the next 24 hours.",
       "Ask LCM if symptoms flare, if you are unsure about an avoided food, or if the meal involves supplements or medication interactions.",
     ].join("\n\n");
@@ -679,8 +685,20 @@ function renderAskAnswer(text) {
   els.askAnswer.replaceChildren();
   String(text).split(/\n{2,}/).filter(Boolean).forEach((paragraphText) => {
     const paragraph = document.createElement("p");
-    paragraph.textContent = paragraphText.trim();
+    appendInlineMarkdown(paragraph, paragraphText.trim());
     els.askAnswer.append(paragraph);
+  });
+}
+
+function appendInlineMarkdown(element, text) {
+  text.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).forEach((part) => {
+    if (part.startsWith("**") && part.endsWith("**")) {
+      const strong = document.createElement("strong");
+      strong.textContent = part.slice(2, -2);
+      element.append(strong);
+      return;
+    }
+    element.append(document.createTextNode(part));
   });
 }
 
@@ -715,9 +733,10 @@ function renderProtocol() {
   renderList(els.supplementList, blueprint.supplementIdeas, (item) => itemCard({
     title: item.title,
     body: item.idea,
-    badge: "Review",
+    badge: item.badge || "Review",
+    badgeClass: item.className || layerClass(item.badge || item.title),
     footer: item.note,
-    explain: explanationPayload("Supplement idea", item.title, item.idea, "Review", item.note),
+    explain: explanationPayload("Supplement idea", item.title, item.idea, item.badge || "Review", item.note),
   }), "No supplement ideas published yet.");
 }
 
@@ -874,8 +893,18 @@ function buildFoodSuggestions(foodFocus, profileKey) {
   if (/almond/.test(rules)) avoid.push("almond");
   const avoidText = avoid.length ? `Avoids ${avoid.join(", ")}.` : "Uses neutral protein anchors from the Blueprint.";
   const femaleNote = profileKey === "female" ? "Useful when cycle symptoms, cravings or luteal recovery need a steadier morning baseline." : "";
+  const suggestions = [];
 
-  return [
+  if (avoid.includes("dairy protein")) {
+    suggestions.push({
+      title: "Coconut yoghurt breakfast bowl",
+      detail: "Unsweetened coconut-based yoghurt with berries, oats, chia or flax if tolerated, plus an approved protein anchor on the side.",
+      badge: "Dairy-free",
+      note: "Like-for-like swap for Greek yoghurt while dairy protein is temporarily avoided.",
+    });
+  }
+
+  return suggestions.concat([
     {
       title: "Salmon avocado plate",
       detail: "Smoked salmon or leftover salmon with avocado, cucumber, tomato, olive oil and cooked potatoes or oats on the side if tolerated.",
@@ -906,7 +935,19 @@ function buildFoodSuggestions(foodFocus, profileKey) {
       badge: "Simple",
       note: "Avoids whey, casein, soy and almond milk.",
     },
-  ];
+  ]);
+}
+
+function preferredFoodSwaps(foodFocus) {
+  const rules = (foodFocus || []).join(" ").toLowerCase();
+  const swaps = [];
+  if (/dairy|casein|milk|whey|yoghurt|yogurt|cheese/.test(rules)) {
+    swaps.push("Greek/cow dairy yoghurt -> unsweetened coconut-based yoghurt; keep protein anchored elsewhere.");
+  }
+  if (/egg white/.test(rules)) {
+    swaps.push("Egg white -> fish, poultry or another approved protein anchor.");
+  }
+  return swaps;
 }
 
 function biomarkerBaseline(marker) {
@@ -1124,12 +1165,13 @@ function blueprintFromReport(report, fallbackClientName) {
   const profileKey = detectBiologyProfile(summary, protocol, report);
   const profile = biologyProfile(profileKey);
   const priorities = mapPriorities(firstArray(summary, ["priorities", "primary_priorities", "primaryPriorities"]));
-  const layers = mapLayers(priorities);
+  const dnaInsights = extractDnaInsights(summary, protocol);
+  const layers = ensureDnaLayer(mapLayers(priorities), dnaInsights);
   const protocolPhases = mapProtocolPhases(firstArray(protocol, ["phases", "protocol_phases", "protocolPhases"]));
   const trainingPlan = mapTraining(firstArray(summary, ["training", "training_plan", "trainingPlan"])).length
     ? mapTraining(firstArray(summary, ["training", "training_plan", "trainingPlan"]))
     : mapTraining(firstArray(protocol, ["training", "training_plan", "trainingPlan"]));
-  const supplementIdeas = mapSupplements(firstArray(summary, ["supplements", "supplement_ideas", "supplementIdeas"])).length
+  const extractedSupplements = mapSupplements(firstArray(summary, ["supplements", "supplement_ideas", "supplementIdeas"])).length
     ? mapSupplements(firstArray(summary, ["supplements", "supplement_ideas", "supplementIdeas"]))
     : mapSupplements(firstArray(protocol, ["supplements", "supplement_ideas", "supplementIdeas"]));
   const foodRuleKeys = ["food_focus", "foodFocus", "nutrition", "food_rules", "foodRules"];
@@ -1144,6 +1186,7 @@ function blueprintFromReport(report, fallbackClientName) {
     .filter(unique);
   const biomarkers = mapBiomarkers(firstArray(summary, ["biomarkers", "blood_markers", "lab_results"]));
   const foodSuggestions = buildFoodSuggestions(foodFocus, profile.key);
+  const supplementIdeas = withDnaSupplementIdeas(extractedSupplements, dnaInsights);
   const focus = meaningfulFocus(report.current_focus)
     || meaningfulFocus(pick(summary, ["headline", "current_focus", "currentFocus"]))
     || (priorities[0] ? `${priorities[0].layer}: ${priorities[0].title}` : "");
@@ -1162,6 +1205,7 @@ function blueprintFromReport(report, fallbackClientName) {
     trainingPlan,
     trainingHeadline: trainingPlan[0]?.title || "Blueprint training recommendations.",
     supplementIdeas,
+    dnaInsights,
     biomarkers,
     foodFocus,
     foodSuggestions,
@@ -1186,6 +1230,7 @@ function pendingBlueprint(clientName) {
     trainingPlan: [],
     trainingHeadline: "Training recommendations will appear after extraction.",
     supplementIdeas: [],
+    dnaInsights: extractDnaInsights({}, {}),
     biomarkers: [],
     foodFocus: [],
     foodSuggestions: [],
@@ -1316,6 +1361,57 @@ function mapLayers(priorities) {
   }));
 }
 
+function ensureDnaLayer(layers, dnaInsights) {
+  const hasDna = layers.some((layer) => /dna|gene|genetic|methyl/i.test(layer.name));
+  if (hasDna) return layers;
+  return [
+    ...layers,
+    {
+      name: "DNA and genetics",
+      signal: dnaInsights.signal,
+      decision: dnaInsights.decision,
+      status: dnaInsights.hasReportSignal ? "Active" : "Context",
+    },
+  ];
+}
+
+function extractDnaInsights(summary, protocol) {
+  const dnaRows = [
+    ...firstArray(summary, ["dna", "genetics", "genetic_findings", "geneticFindings", "methylation", "nutrigenomics"]),
+    ...firstArray(protocol, ["dna", "genetics", "genetic_findings", "geneticFindings", "methylation", "nutrigenomics"]),
+  ];
+  const text = textArray(dnaRows).filter(unique).join("; ");
+  return {
+    hasReportSignal: Boolean(text),
+    signal: text || "Use DNA context alongside blood markers, symptoms and check-ins rather than as a stand-alone score.",
+    decision: text
+      ? "Translate DNA findings into food, supplement and recovery choices only after LCM review."
+      : "Use this layer for supplement review, methylation context, detox capacity and inflammation patterns when DNA data is available.",
+  };
+}
+
+function withDnaSupplementIdeas(items, dnaInsights) {
+  const hasDnaItem = items.some((item) => /dna|gene|genetic|methyl/i.test(`${item.title} ${item.idea} ${item.note}`));
+  if (hasDnaItem) return items;
+  return [
+    ...items,
+    {
+      title: "DNA-informed methylation review",
+      idea: "Use DNA findings together with homocysteine, B12, folate, B6, energy and mood signals before choosing methylation support.",
+      note: "Review with LCM before adding methylated B vitamins or changing dose.",
+      badge: "DNA",
+      className: "dna",
+    },
+    {
+      title: "DNA detox and inflammation support review",
+      idea: "Connect genetic detox and inflammation context with omega-3, magnesium, NAC or glutathione-style support only when the Blueprint and blood markers support it.",
+      note: dnaInsights.hasReportSignal ? dnaInsights.decision : "Use as a review prompt, not a blind supplement stack.",
+      badge: "DNA",
+      className: "dna",
+    },
+  ];
+}
+
 function mapProtocolPhases(rows) {
   return rows.map((row, index) => ({
     week: pick(row, ["week", "weeks", "phase", "current_phase", "currentPhase"]) || `Week ${index + 1}`,
@@ -1335,11 +1431,17 @@ function mapTraining(rows) {
 }
 
 function mapSupplements(rows) {
-  return rows.map((row) => ({
-    title: pick(row, ["title", "name"]) || "Supplement review item",
-    idea: pick(row, ["idea", "detail", "description", "action", "recommendation"]) || "Review this support idea with LCM before changing the protocol.",
-    note: pick(row, ["note", "caution"]) || "Review with LCM before changing the protocol.",
-  }));
+  return rows.map((row) => {
+    const title = pick(row, ["title", "name"]) || "Supplement review item";
+    const badge = pick(row, ["badge", "layer", "category"]) || (/dna|gene|genetic|methyl/i.test(title) ? "DNA" : "Review");
+    return {
+      title,
+      idea: pick(row, ["idea", "detail", "description", "action", "recommendation"]) || "Review this support idea with LCM before changing the protocol.",
+      note: pick(row, ["note", "caution"]) || "Review with LCM before changing the protocol.",
+      badge,
+      className: layerClass(badge),
+    };
+  });
 }
 
 function mapBiomarkers(rows) {
