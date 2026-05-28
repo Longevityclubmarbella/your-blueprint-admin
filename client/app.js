@@ -1208,11 +1208,12 @@ function biologyProfile(key) {
     return {
       key,
       label: "Female biology lens",
-      title: "Cycle, iron, recovery and transition context",
-      copy: "This dashboard treats hormones, energy and training as phase-sensitive rather than static scores.",
+      title: "Cycle, iron, DNA, recovery and transition context",
+      copy: "This dashboard treats hormones, genetics, energy and training as phase-sensitive rather than static scores.",
       items: [
         { title: "Cycle-aware recovery", detail: "Track cycle phase, sleep dips, PMS and training tolerance together.", badge: "Recovery", className: "recovery" },
         { title: "Iron and energy resilience", detail: "Ferritin, CBC, bleeding pattern and fatigue should be reviewed as one layer.", badge: "Blood", className: "blood" },
+        { title: "DNA and methylation context", detail: "Use genetic findings as context for nutrient needs, detox capacity and inflammation patterns when present.", badge: "DNA", className: "dna" },
         { title: "Gut and estrogen clearance", detail: "Bowel rhythm, fibre ramp and food tolerance influence PMS, bloating and skin signals.", badge: "Gut", className: "gut" },
         { title: "Midlife prevention", detail: "ApoB, LDL, glucose, muscle and bone strength deserve early trend tracking.", badge: "Blood", className: "blood" },
       ],
@@ -1223,11 +1224,12 @@ function biologyProfile(key) {
     return {
       key,
       label: "Male biology lens",
-      title: "Performance, metabolic risk and hormone context",
-      copy: "This dashboard reads testosterone, recovery, cardiometabolic risk and training load together.",
+      title: "Performance, DNA, metabolic risk and hormone context",
+      copy: "This dashboard reads genetics, testosterone, recovery, cardiometabolic risk and training load together.",
       items: [
         { title: "Testosterone in context", detail: "Free testosterone, SHBG, sleep, alcohol, stress and body composition should be interpreted together.", badge: "Hormones", className: "recovery" },
         { title: "Cardiometabolic prevention", detail: "ApoB, LDL, insulin, HbA1c, blood pressure and waist trend are core operating metrics.", badge: "Blood", className: "blood" },
+        { title: "DNA and methylation context", detail: "Use genetic findings as context for nutrient needs, detox capacity and inflammation patterns when present.", badge: "DNA", className: "dna" },
         { title: "Training capacity", detail: "Strength, Zone 2 and mobility build output without stacking intensity on poor recovery.", badge: "Training", className: "training" },
         { title: "Prostate and inflammation context", detail: "PSA, urinary symptoms, hsCRP and liver markers should stay in the review layer when present.", badge: "Review", className: "dna" },
       ],
@@ -1238,9 +1240,10 @@ function biologyProfile(key) {
     key: "unknown",
     label: "Blueprint biology lens",
     title: "Personal context from the report",
-    copy: "The dashboard adapts when the Blueprint profile is available in the extracted data.",
+    copy: "The dashboard adapts when the Blueprint profile and DNA context are available in the extracted data.",
     items: [
       { title: "Blood and biomarkers", detail: "Use the report markers as the starting point for trend tracking.", badge: "Blood", className: "blood" },
+      { title: "DNA and genetics", detail: "Use the DNA layer as context for nutrient needs, detox capacity, inflammation and recovery patterns when present.", badge: "DNA", className: "dna" },
       { title: "Gut, food and recovery", detail: "Connect daily symptoms with nutrition, training and sleep signals.", badge: "Protocol", className: "gut" },
     ],
   };
