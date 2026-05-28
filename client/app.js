@@ -550,7 +550,7 @@ async function askBlueprintQuestion(event) {
 
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), 20000);
-    const response = await fetch(`${SUPABASE_URL}/functions/v1/ask-blueprint-question`, {
+    const response = await fetch(functionUrl("ask-blueprint-question"), {
       method: "POST",
       headers: {
         apikey: SUPABASE_ANON_KEY,
@@ -989,7 +989,7 @@ function closeExplanation() {
 
 async function fetchAiExplanation(payload) {
   if (!state.session || !state.client) return "";
-  const response = await fetch(`${SUPABASE_URL}/functions/v1/explain-blueprint-theme`, {
+  const response = await fetch(functionUrl("explain-blueprint-theme"), {
     method: "POST",
     headers: {
       apikey: SUPABASE_ANON_KEY,
@@ -1492,6 +1492,10 @@ function formatDate(date) {
 
 function encodeStoragePath(path) {
   return path.split("/").map(encodeURIComponent).join("/");
+}
+
+function functionUrl(name) {
+  return `${SUPABASE_URL}/functions/v1/${name}?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}`;
 }
 
 function randomId() {
