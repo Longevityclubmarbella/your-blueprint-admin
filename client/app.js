@@ -11,6 +11,7 @@ const state = {
   activeTab: "today",
   installPromptEvent: null,
   askAnswer: "",
+  askClientId: "",
 };
 
 const els = {};
@@ -142,9 +143,12 @@ async function handleLogin(event) {
       }),
     });
     const data = await parseResponse(response, "Could not sign in.");
-    state.session = sessionFromAuthResponse(data);
+    const nextSession = sessionFromAuthResponse(data);
+    resetAccountData();
+    state.session = nextSession;
     saveSession();
     showMainApp();
+    renderApp();
     await syncAll();
   } catch (error) {
     setLoginStatus(error.message, true);
@@ -206,9 +210,7 @@ function saveSession() {
 
 function signOut() {
   state.session = null;
-  state.client = null;
-  state.checkins = [];
-  state.blueprint = pendingBlueprint("Client");
+  resetAccountData();
   storageRemove(SESSION_KEY);
   showLogin();
 }
@@ -219,7 +221,11 @@ async function syncAll() {
 
   try {
     await refreshSessionIfNeeded();
+    const previousClientId = state.client?.id || "";
     const client = await fetchClient();
+    if ((previousClientId && previousClientId !== client.id) || (state.askClientId && state.askClientId !== client.id)) {
+      clearAskState();
+    }
     state.client = client;
     state.checkins = await fetchCheckIns(client.id);
     const report = await fetchLatestReport(client.id);
@@ -389,6 +395,21 @@ function showMainApp() {
   setTab(state.activeTab);
 }
 
+function resetAccountData(clientName = "Client") {
+  state.client = null;
+  state.checkins = [];
+  state.blueprint = pendingBlueprint(clientName);
+  clearAskState();
+}
+
+function clearAskState() {
+  state.askAnswer = "";
+  state.askClientId = "";
+  if (els.askQuestion) els.askQuestion.value = "";
+  if (els.askStatus) setAskStatus("Answers use your loaded Blueprint context.");
+  if (els.askAnswer) renderAskAnswer("Your answer will appear here.");
+}
+
 function setTab(tabName) {
   state.activeTab = tabName;
   els.navButtons.forEach((button) => {
@@ -504,7 +525,9 @@ function explainFoodLogic() {
 }
 
 function renderAsk() {
-  renderAskAnswer(state.askAnswer || "Your answer will appear here.");
+  const currentClientId = state.client?.id || "";
+  const answer = state.askClientId && state.askClientId === currentClientId ? state.askAnswer : "";
+  renderAskAnswer(answer || "Your answer will appear here.");
   els.askSuggestions.replaceChildren();
   askSuggestions(state.blueprint).forEach((question) => {
     const button = document.createElement("button");
@@ -538,6 +561,9 @@ async function askBlueprintQuestion(event) {
   button.disabled = true;
   renderAskAnswer("AI is reading your Blueprint context...");
   setAskStatus("Calling Blueprint AI...");
+  let requestClientId = "";
+  let requestUserId = "";
+  let timeoutId = 0;
 
   try {
     if (!state.client) {
@@ -548,8 +574,10 @@ async function askBlueprintQuestion(event) {
       return;
     }
 
+    requestClientId = state.client.id;
+    requestUserId = state.session.userId;
     const controller = new AbortController();
-    const timeoutId = window.setTimeout(() => controller.abort(), 20000);
+    timeoutId = window.setTimeout(() => controller.abort(), 20000);
     const response = await fetch(functionUrl("ask-blueprint-question"), {
       method: "POST",
       headers: {
@@ -558,7 +586,7 @@ async function askBlueprintQuestion(event) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        client_id: state.client.id,
+        client_id: requestClientId,
         question,
         profile: state.blueprint.profile?.key || "unknown",
         client_context: buildAskContextSnapshot(),
@@ -567,7 +595,9 @@ async function askBlueprintQuestion(event) {
     });
     window.clearTimeout(timeoutId);
     const data = await parseResponse(response, "Could not answer this question.");
+    if (state.client?.id !== requestClientId || state.session?.userId !== requestUserId) return;
     state.askAnswer = data.answer || buildLocalAskAnswer(question);
+    state.askClientId = requestClientId;
     renderAskAnswer(state.askAnswer);
     if (data.provider === "Blueprint fallback") {
       setAskStatus("Server answered without an AI provider. Check the MiniMax secret if this should be AI.", true);
@@ -576,10 +606,13 @@ async function askBlueprintQuestion(event) {
     }
   } catch (error) {
     const message = error.name === "AbortError" ? "AI answer took too long." : error.message;
+    if (!requestClientId || state.client?.id !== requestClientId || state.session?.userId !== requestUserId) return;
     state.askAnswer = buildLocalAskAnswer(question);
+    state.askClientId = state.client.id;
     renderAskAnswer(state.askAnswer);
     setAskStatus(`${message} Showing the Blueprint-based answer for now.`, true);
   } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
     button.disabled = false;
   }
 }
