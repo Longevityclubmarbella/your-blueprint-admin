@@ -536,9 +536,8 @@ async function askBlueprintQuestion(event) {
 
   const button = els.askForm.querySelector("button");
   button.disabled = true;
-  state.askAnswer = buildLocalAskAnswer(question);
-  renderAskAnswer(state.askAnswer);
-  setAskStatus("Blueprint-based answer ready. Asking AI for extra context...");
+  renderAskAnswer("AI is reading your Blueprint context...");
+  setAskStatus("Calling Blueprint AI...");
 
   try {
     if (!state.client) {
@@ -562,6 +561,7 @@ async function askBlueprintQuestion(event) {
         client_id: state.client.id,
         question,
         profile: state.blueprint.profile?.key || "unknown",
+        client_context: buildAskContextSnapshot(),
       }),
       signal: controller.signal,
     });
@@ -569,13 +569,41 @@ async function askBlueprintQuestion(event) {
     const data = await parseResponse(response, "Could not answer this question.");
     state.askAnswer = data.answer || buildLocalAskAnswer(question);
     renderAskAnswer(state.askAnswer);
-    setAskStatus(data.provider ? `Answered with ${data.provider}.` : "Answered from Blueprint context.");
+    if (data.provider === "Blueprint fallback") {
+      setAskStatus("Server answered without an AI provider. Check the MiniMax secret if this should be AI.", true);
+    } else {
+      setAskStatus(data.provider ? `Answered with ${data.provider}.` : "Answered from Blueprint context.");
+    }
   } catch (error) {
     const message = error.name === "AbortError" ? "AI answer took too long." : error.message;
+    state.askAnswer = buildLocalAskAnswer(question);
+    renderAskAnswer(state.askAnswer);
     setAskStatus(`${message} Showing the Blueprint-based answer for now.`, true);
   } finally {
     button.disabled = false;
   }
+}
+
+function buildAskContextSnapshot() {
+  const blueprint = state.blueprint || {};
+  return {
+    current_focus: blueprint.currentFocus || "",
+    profile: blueprint.profile?.key || "unknown",
+    priorities: (blueprint.priorities || []).slice(0, 6),
+    food_focus: (blueprint.foodFocus || []).slice(0, 12),
+    food_suggestions: (blueprint.foodSuggestions || []).slice(0, 6),
+    training_plan: (blueprint.trainingPlan || []).slice(0, 6),
+    supplement_ideas: (blueprint.supplementIdeas || []).slice(0, 6),
+    biomarkers: (blueprint.biomarkers || []).slice(0, 10).map((marker) => ({
+      name: marker.name,
+      value: marker.value,
+      unit: marker.unit,
+      range: marker.range,
+      reason: marker.reason,
+      status: marker.statusTitle,
+    })),
+    recent_checkins: (state.checkins || []).slice(0, 7),
+  };
 }
 
 function askSuggestions(blueprint) {
