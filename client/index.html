@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#09130f" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Your Blueprint" />
+    <title>Your Blueprint</title>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" href="./icon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="./icon.svg" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="./app.js" defer></script>
+  </head>
+  <body>
+    <main class="app-shell">
+      <section id="login-screen" class="login-screen">
+        <div class="brand-lockup">
+          <div class="brandmark" aria-hidden="true"></div>
+          <div>
+            <p class="eyebrow">Longevity Club Marbella</p>
+            <h1>Your Blueprint</h1>
+          </div>
+        </div>
+
+        <form id="login-form" class="login-form">
+          <label>
+            Email
+            <input id="email" type="email" autocomplete="email" required />
+          </label>
+          <label>
+            Password
+            <input id="password" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="primary-button" type="submit">Sign in</button>
+          <p id="login-status" class="status-text">Use the login details from LCM.</p>
+        </form>
+      </section>
+
+      <section id="main-app" class="main-app" hidden>
+        <header class="topbar">
+          <div class="brand-lockup compact">
+            <div class="brandmark small" aria-hidden="true"></div>
+            <div>
+              <p class="eyebrow">Your Blueprint</p>
+              <h2 id="client-name">Client</h2>
+            </div>
+          </div>
+          <button id="sign-out" class="icon-button" type="button" aria-label="Sign out">Exit</button>
+        </header>
+
+        <section class="sync-strip">
+          <span id="sync-status">Loading client data...</span>
+          <button id="refresh-data" class="text-button" type="button">Refresh</button>
+        </section>
+
+        <div class="tab-panel active" id="tab-today">
+          <section class="hero-card">
+            <div class="hero-row">
+              <div class="brandmark medium" aria-hidden="true"></div>
+              <div>
+                <p class="eyebrow" id="blueprint-date">Blueprint pending</p>
+                <h3 id="hero-focus">Your Blueprint is loading.</h3>
+              </div>
+            </div>
+            <p id="hero-message" class="muted-copy">LCM preloads the reviewed report for this account.</p>
+          </section>
+
+          <section class="section-block lens-card" id="biology-lens-card">
+            <div class="section-heading">
+              <p class="eyebrow" id="biology-profile-label">Biology lens</p>
+              <h3 id="biology-lens-title">Personal biology context</h3>
+              <p id="biology-lens-copy">The app adapts the dashboard around the Blueprint profile.</p>
+              <button id="biology-lens-explain" class="section-action" type="button">Explain lens</button>
+            </div>
+            <div id="biology-lens-list" class="lens-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Today's Plan</h3>
+              <p>Small actions that keep the protocol moving.</p>
+            </div>
+            <div id="today-actions" class="stack-list"></div>
+            <button id="start-checkin" class="primary-button" type="button">Save today's check-in</button>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Primary Priorities</h3>
+              <p>The strongest signals from the Blueprint.</p>
+            </div>
+            <div id="priority-list" class="stack-list"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tab-blueprint">
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Biology Map</h3>
+              <p>A client-friendly view of each active layer.</p>
+            </div>
+            <div id="biology-list" class="stack-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Food Logic</h3>
+              <p>Temporary rules while the protocol creates signal.</p>
+              <button id="food-logic-explain" class="section-action" type="button">Explain food logic</button>
+            </div>
+            <div id="food-tags" class="tag-cloud"></div>
+          </section>
+
+          <section class="section-block food-ideas-card">
+            <div class="section-heading">
+              <h3>Protein Breakfast Ideas</h3>
+              <p>Built around the current avoid/limit signals.</p>
+            </div>
+            <div id="food-suggestions" class="stack-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Safety Notes</h3>
+              <p>Protocol boundaries for review and follow-up.</p>
+            </div>
+            <div id="safety-list" class="stack-list"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tab-ask">
+          <section class="section-block ask-card">
+            <div class="section-heading">
+              <p class="eyebrow">Blueprint AI</p>
+              <h3>Ask Your Blueprint</h3>
+              <p>Ask practical questions about meals, training, recovery or protocol choices.</p>
+            </div>
+            <form id="ask-form" class="ask-form">
+              <label>
+                Question
+                <textarea id="ask-question" rows="5" placeholder="I am thinking about this breakfast. Does it fit my Blueprint?"></textarea>
+              </label>
+              <button class="primary-button" type="submit">Ask Blueprint AI</button>
+              <p id="ask-status" class="status-text">Answers use your loaded Blueprint context.</p>
+            </form>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Suggested Questions</h3>
+              <p>Tap one, then adjust it to your situation.</p>
+            </div>
+            <div id="ask-suggestions" class="suggestion-grid"></div>
+          </section>
+
+          <section class="section-block ask-answer-card">
+            <div class="section-heading">
+              <h3>Answer</h3>
+              <p>Use this as coaching context, not medical diagnosis.</p>
+            </div>
+            <div id="ask-answer" class="ask-answer">
+              <p>Your answer will appear here.</p>
+            </div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tab-checkin">
+          <form id="checkin-form" class="section-block">
+            <div class="section-heading">
+              <h3>Daily Check-in</h3>
+              <p>Energy, sleep, gut comfort and recovery.</p>
+            </div>
+
+            <div class="metric-field">
+              <label for="energy">Energy</label>
+              <output id="energy-value">6</output>
+              <input id="energy" type="range" min="0" max="10" step="1" value="6" />
+            </div>
+            <div class="metric-field">
+              <label for="sleep">Sleep</label>
+              <output id="sleep-value">7</output>
+              <input id="sleep" type="range" min="0" max="10" step="1" value="7" />
+            </div>
+            <div class="metric-field">
+              <label for="gut">Gut comfort</label>
+              <output id="gut-value">5</output>
+              <input id="gut" type="range" min="0" max="10" step="1" value="5" />
+            </div>
+            <div class="metric-field">
+              <label for="recovery">Recovery</label>
+              <output id="recovery-value">6</output>
+              <input id="recovery" type="range" min="0" max="10" step="1" value="6" />
+            </div>
+
+            <label>
+              Notes
+              <textarea id="note" rows="5" placeholder="Symptoms, meals, training, travel, cycle phase..."></textarea>
+            </label>
+
+            <button class="primary-button" type="submit">Save check-in</button>
+            <p id="checkin-status" class="status-text">Not saved yet today.</p>
+          </form>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Recent Notes</h3>
+              <p>Synced to the client database.</p>
+            </div>
+            <div id="recent-checkins" class="stack-list"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tab-trends">
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Daily Signals</h3>
+              <p>Trendlines from recent check-ins.</p>
+            </div>
+            <div class="chart-wrap">
+              <svg id="signals-chart" viewBox="0 0 320 180" role="img" aria-label="Daily signal trendlines"></svg>
+            </div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Blood Results</h3>
+              <p>Blueprint markers and future retest uploads.</p>
+            </div>
+            <input id="lab-file" class="visually-hidden" type="file" accept="application/pdf,image/*" />
+            <button id="upload-labs" class="secondary-button" type="button">Upload new blood results</button>
+            <p id="lab-status" class="status-text">No follow-up labs uploaded yet.</p>
+            <div id="biomarker-list" class="stack-list"></div>
+          </section>
+        </div>
+
+        <div class="tab-panel" id="tab-protocol">
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>12-week Protocol</h3>
+              <p>Unlocked in practical blocks.</p>
+            </div>
+            <div id="phase-list" class="stack-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Training</h3>
+              <p id="training-headline">Blueprint training recommendations.</p>
+            </div>
+            <div id="training-list" class="stack-list"></div>
+          </section>
+
+          <section class="section-block">
+            <div class="section-heading">
+              <h3>Daily Supplement Ideas</h3>
+              <p>Review items, not blind prescriptions.</p>
+            </div>
+            <div id="supplement-list" class="stack-list"></div>
+          </section>
+        </div>
+
+        <nav class="bottom-nav" aria-label="Main navigation">
+          <button class="nav-button active" type="button" data-tab="today">Today</button>
+          <button class="nav-button" type="button" data-tab="blueprint">Blueprint</button>
+          <button class="nav-button" type="button" data-tab="ask">Ask</button>
+          <button class="nav-button" type="button" data-tab="checkin">Check-in</button>
+          <button class="nav-button" type="button" data-tab="trends">Trends</button>
+          <button class="nav-button" type="button" data-tab="protocol">Protocol</button>
+        </nav>
+      </section>
+
+      <aside id="install-prompt" class="install-prompt" hidden>
+        <div class="install-card" role="dialog" aria-modal="true" aria-labelledby="install-title">
+          <div class="brand-lockup compact">
+            <div class="brandmark small" aria-hidden="true"></div>
+            <div>
+              <p class="eyebrow">Your Blueprint</p>
+              <h3 id="install-title">Add this app to your phone</h3>
+            </div>
+          </div>
+          <p id="install-copy" class="muted-copy">Open it from your home screen like a normal app.</p>
+          <ol id="install-steps" class="install-steps"></ol>
+          <div class="install-actions">
+            <button id="install-action" class="primary-button" type="button">Add to Home Screen</button>
+            <button id="install-dismiss" class="secondary-button" type="button">Not now</button>
+          </div>
+        </div>
+      </aside>
+
+      <aside id="explain-sheet" class="explain-sheet" hidden>
+        <div class="explain-card" role="dialog" aria-modal="true" aria-labelledby="explain-title">
+          <div class="explain-head">
+            <div>
+              <p class="eyebrow" id="explain-kicker">Blueprint explanation</p>
+              <h3 id="explain-title">Theme</h3>
+            </div>
+            <button id="explain-close" class="icon-button" type="button" aria-label="Close explanation">Close</button>
+          </div>
+          <div id="explain-body" class="explain-body"></div>
+          <p id="explain-status" class="status-text">Blueprint-based explanation.</p>
+        </div>
+      </aside>
+    </main>
+  </body>
+</html>
