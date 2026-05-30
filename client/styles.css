@@ -184,6 +184,10 @@ h3 {
   gap: 15px;
 }
 
+.install-shortcut {
+  justify-self: stretch;
+}
+
 label {
   display: grid;
   gap: 7px;

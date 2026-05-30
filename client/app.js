@@ -20,6 +20,7 @@ document.addEventListener("DOMContentLoaded", () => {
   cacheElements();
   bindEvents();
   registerServiceWorker();
+  updateInstallShortcutVisibility();
   restoreSession();
 });
 
@@ -72,6 +73,7 @@ function cacheElements() {
     "install-steps",
     "install-action",
     "install-dismiss",
+    "install-shortcut",
     "explain-sheet",
     "explain-kicker",
     "explain-title",
@@ -106,6 +108,7 @@ function bindEvents() {
   els.labFile.addEventListener("change", uploadLabFile);
   els.installAction.addEventListener("click", installApp);
   els.installDismiss.addEventListener("click", dismissInstallPrompt);
+  els.installShortcut.addEventListener("click", showInstallInstructions);
   els.explainClose.addEventListener("click", closeExplanation);
   els.explainSheet.addEventListener("click", (event) => {
     if (event.target === els.explainSheet) closeExplanation();
@@ -1669,11 +1672,18 @@ function registerServiceWorker() {
 function handleBeforeInstallPrompt(event) {
   event.preventDefault();
   state.installPromptEvent = event;
+  updateInstallShortcutVisibility();
   maybeShowInstallPrompt();
 }
 
-function maybeShowInstallPrompt() {
-  if (!els.installPrompt || isStandaloneMode() || !isMobileDevice() || wasInstallPromptDismissedRecently()) return;
+function showInstallInstructions() {
+  maybeShowInstallPrompt({ force: true });
+}
+
+function maybeShowInstallPrompt(options = {}) {
+  const force = Boolean(options.force);
+  if (!els.installPrompt || isStandaloneMode()) return;
+  if (!force && (!isMobileDevice() || wasInstallPromptDismissedRecently())) return;
 
   const isIos = isIosDevice();
   els.installAction.hidden = false;
@@ -1722,6 +1732,12 @@ function dismissInstallPrompt() {
 
 function hideInstallPrompt() {
   if (els.installPrompt) els.installPrompt.hidden = true;
+  updateInstallShortcutVisibility();
+}
+
+function updateInstallShortcutVisibility() {
+  if (!els.installShortcut) return;
+  els.installShortcut.hidden = isStandaloneMode();
 }
 
 function isMobileDevice() {
